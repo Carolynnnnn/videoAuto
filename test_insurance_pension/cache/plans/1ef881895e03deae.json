@@ -1,0 +1,50 @@
+{
+  "type": "ai_image",
+  "keywords": [
+    "family protection",
+    "quality of life",
+    "secure future",
+    "technology background",
+    "digital abstract"
+  ],
+  "prompt": "A warm, secure family scene with a protective shield around them, in a minimalist tech style",
+  "use_pdf_assets": [],
+  "motion": {
+    "preset": "soft_kenburns",
+    "speed": 0.8
+  },
+  "overlay": [
+    {
+      "kind": "highlight",
+      "target": "center",
+      "strength": 0.6,
+      "extra": {}
+    },
+    {
+      "kind": "subtitle_emphasis",
+      "target": "subtitle",
+      "strength": 0.8,
+      "extra": {
+        "tokens": [
+          "保护",
+          "家人",
+          "质量"
+        ]
+      }
+    },
+    {
+      "kind": "sticker",
+      "target": "video",
+      "strength": 0.8,
+      "extra": {
+        "asset_path": "/home/fezer/intern/videoauto/.sisyphus/evidence/task-7-sticker.gif",
+        "anchor": "bottom-right",
+        "scale": 0.25,
+        "transparency": 0.9,
+        "start_time": 1.0,
+        "duration": 8.0
+      }
+    }
+  ],
+  "asset_path": null
+}

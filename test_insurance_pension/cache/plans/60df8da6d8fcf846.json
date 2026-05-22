@@ -1,0 +1,37 @@
+{
+  "type": "ai_image",
+  "keywords": [
+    "insurance concept",
+    "risk management",
+    "financial security",
+    "technology background",
+    "digital abstract"
+  ],
+  "prompt": "A minimalist, futuristic illustration of a shield protecting a family or assets, with glowing lines and a clean, tech-inspired aesthetic.",
+  "use_pdf_assets": [],
+  "motion": {
+    "preset": "soft_kenburns",
+    "speed": 0.8
+  },
+  "overlay": [
+    {
+      "kind": "highlight",
+      "target": "center",
+      "strength": 0.6,
+      "extra": {}
+    },
+    {
+      "kind": "subtitle_emphasis",
+      "target": "subtitle",
+      "strength": 0.8,
+      "extra": {
+        "tokens": [
+          "保险",
+          "风险",
+          "工具"
+        ]
+      }
+    }
+  ],
+  "asset_path": null
+}

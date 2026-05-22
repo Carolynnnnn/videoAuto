@@ -1,0 +1,36 @@
+{
+  "type": "ai_image",
+  "keywords": [
+    "life insurance",
+    "financial compensation",
+    "family protection",
+    "technology background",
+    "digital abstract"
+  ],
+  "prompt": "A conceptual image of life insurance providing financial security, with a symbolic representation of protection and support, in a clean and modern style.",
+  "use_pdf_assets": [],
+  "motion": {
+    "preset": "soft_kenburns",
+    "speed": 0.8
+  },
+  "overlay": [
+    {
+      "kind": "highlight",
+      "target": "center",
+      "strength": 0.6,
+      "extra": {}
+    },
+    {
+      "kind": "subtitle_emphasis",
+      "target": "subtitle",
+      "strength": 0.8,
+      "extra": {
+        "tokens": [
+          "人寿保险",
+          "经济补偿"
+        ]
+      }
+    }
+  ],
+  "asset_path": null
+}

@@ -1,0 +1,37 @@
+{
+  "type": "ai_image",
+  "keywords": [
+    "health insurance",
+    "medical reimbursement",
+    "healthcare finance",
+    "medical diagnosis",
+    "hospital doctor"
+  ],
+  "prompt": "A futuristic digital interface showing health insurance coverage and medical bills being processed, tech style, clean background",
+  "use_pdf_assets": [],
+  "motion": {
+    "preset": "soft_kenburns",
+    "speed": 0.8
+  },
+  "overlay": [
+    {
+      "kind": "highlight",
+      "target": "center",
+      "strength": 0.6,
+      "extra": {}
+    },
+    {
+      "kind": "subtitle_emphasis",
+      "target": "subtitle",
+      "strength": 0.8,
+      "extra": {
+        "tokens": [
+          "保险",
+          "报销",
+          "费用"
+        ]
+      }
+    }
+  ],
+  "asset_path": null
+}

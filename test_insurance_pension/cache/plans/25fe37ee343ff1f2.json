@@ -1,0 +1,38 @@
+{
+  "type": "ai_image",
+  "keywords": [
+    "retirement planning",
+    "elderly care",
+    "financial security",
+    "technology background",
+    "digital abstract"
+  ],
+  "prompt": "A serene elderly couple smiling in a cozy home, soft lighting, warm and hopeful atmosphere, digital illustration style",
+  "use_pdf_assets": [],
+  "motion": {
+    "preset": "soft_kenburns",
+    "speed": 0.8
+  },
+  "overlay": [
+    {
+      "kind": "text",
+      "target": "bottom",
+      "strength": 0.6,
+      "extra": {}
+    },
+    {
+      "kind": "sticker",
+      "target": "video",
+      "strength": 0.8,
+      "extra": {
+        "asset_path": "/home/fezer/intern/videoauto/.sisyphus/evidence/task-7-sticker.gif",
+        "anchor": "bottom-right",
+        "scale": 0.25,
+        "transparency": 0.9,
+        "start_time": 1.0,
+        "duration": 8.0
+      }
+    }
+  ],
+  "asset_path": null
+}

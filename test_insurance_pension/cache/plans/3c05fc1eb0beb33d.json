@@ -1,0 +1,37 @@
+{
+  "type": "kinetic_text",
+  "keywords": [
+    "insurance types",
+    "insurance categories",
+    "financial protection",
+    "medical diagnosis",
+    "hospital doctor"
+  ],
+  "prompt": "Clean typography with animated text listing insurance types, tech style, 9:16 aspect ratio",
+  "use_pdf_assets": [],
+  "motion": {
+    "preset": "soft_kenburns",
+    "speed": 0.8
+  },
+  "overlay": [
+    {
+      "kind": "highlight",
+      "target": "center",
+      "strength": 0.6,
+      "extra": {}
+    },
+    {
+      "kind": "subtitle_emphasis",
+      "target": "subtitle",
+      "strength": 0.8,
+      "extra": {
+        "tokens": [
+          "主要",
+          "保险",
+          "类型"
+        ]
+      }
+    }
+  ],
+  "asset_path": null
+}

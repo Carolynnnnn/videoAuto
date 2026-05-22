@@ -1,0 +1,37 @@
+{
+  "type": "ai_image",
+  "keywords": [
+    "machine learning",
+    "artificial intelligence",
+    "neural network",
+    "classroom learning",
+    "education technology"
+  ],
+  "prompt": "A futuristic AI agent with glowing circuits, processing data in a digital environment, tech style",
+  "use_pdf_assets": [],
+  "motion": {
+    "preset": "soft_kenburns",
+    "speed": 0.8
+  },
+  "overlay": [
+    {
+      "kind": "highlight",
+      "target": "center",
+      "strength": 0.6,
+      "extra": {}
+    },
+    {
+      "kind": "subtitle_emphasis",
+      "target": "subtitle",
+      "strength": 0.8,
+      "extra": {
+        "tokens": [
+          "agents",
+          "use",
+          "learning"
+        ]
+      }
+    }
+  ],
+  "asset_path": null
+}

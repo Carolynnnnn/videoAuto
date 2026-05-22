@@ -1,0 +1,18 @@
+{
+  "type": "kinetic_text",
+  "keywords": [
+    "thank you",
+    "end screen",
+    "social media",
+    "artificial intelligence",
+    "machine learning"
+  ],
+  "prompt": "Minimal text animation on dark gradient background, tech style",
+  "use_pdf_assets": [],
+  "motion": {
+    "preset": "soft_kenburns",
+    "speed": 0.8
+  },
+  "overlay": [],
+  "asset_path": null
+}

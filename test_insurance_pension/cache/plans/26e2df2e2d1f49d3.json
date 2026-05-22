@@ -1,0 +1,36 @@
+{
+  "type": "template",
+  "keywords": [
+    "subscribe",
+    "social media",
+    "notification",
+    "technology background",
+    "digital abstract"
+  ],
+  "prompt": "A clean, modern subscribe button with glowing effect on a dark tech background",
+  "use_pdf_assets": [],
+  "motion": {
+    "preset": "soft_kenburns",
+    "speed": 0.8
+  },
+  "overlay": [
+    {
+      "kind": "highlight",
+      "target": "center",
+      "strength": 0.6,
+      "extra": {}
+    },
+    {
+      "kind": "subtitle_emphasis",
+      "target": "subtitle",
+      "strength": 0.8,
+      "extra": {
+        "tokens": [
+          "关注",
+          "频道"
+        ]
+      }
+    }
+  ],
+  "asset_path": null
+}

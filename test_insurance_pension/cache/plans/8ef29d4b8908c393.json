@@ -1,0 +1,36 @@
+{
+  "type": "ai_image",
+  "keywords": [
+    "investment diversification",
+    "financial risk management",
+    "portfolio allocation",
+    "financial market",
+    "business analytics"
+  ],
+  "prompt": "A conceptual image showing scattered coins or assets across a digital landscape, tech style, minimalist, 9:16 aspect ratio",
+  "use_pdf_assets": [],
+  "motion": {
+    "preset": "soft_kenburns",
+    "speed": 0.8
+  },
+  "overlay": [
+    {
+      "kind": "highlight",
+      "target": "center",
+      "strength": 0.6,
+      "extra": {}
+    },
+    {
+      "kind": "subtitle_emphasis",
+      "target": "subtitle",
+      "strength": 0.8,
+      "extra": {
+        "tokens": [
+          "分散",
+          "风险"
+        ]
+      }
+    }
+  ],
+  "asset_path": null
+}

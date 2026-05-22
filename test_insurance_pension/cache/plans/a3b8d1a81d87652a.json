@@ -1,0 +1,36 @@
+{
+  "type": "ai_image",
+  "keywords": [
+    "investment diversification",
+    "risk management",
+    "financial metaphor",
+    "financial market",
+    "business analytics"
+  ],
+  "prompt": "A basket with eggs scattered around, modern minimalist style, tech blue tones",
+  "use_pdf_assets": [],
+  "motion": {
+    "preset": "soft_kenburns",
+    "speed": 0.8
+  },
+  "overlay": [
+    {
+      "kind": "highlight",
+      "target": "center",
+      "strength": 0.6,
+      "extra": {}
+    },
+    {
+      "kind": "subtitle_emphasis",
+      "target": "subtitle",
+      "strength": 0.8,
+      "extra": {
+        "tokens": [
+          "鸡蛋",
+          "篮子"
+        ]
+      }
+    }
+  ],
+  "asset_path": null
+}

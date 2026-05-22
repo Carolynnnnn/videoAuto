@@ -1,0 +1,35 @@
+{
+  "type": "kinetic_text",
+  "keywords": [
+    "technology",
+    "digital systems",
+    "network",
+    "artificial intelligence",
+    "machine learning"
+  ],
+  "prompt": "Futuristic glowing text 'Systems!' with digital particles and neon blue light effect, minimalist tech background",
+  "use_pdf_assets": [],
+  "motion": {
+    "preset": "push_in",
+    "speed": 0.8
+  },
+  "overlay": [
+    {
+      "kind": "highlight",
+      "target": "center",
+      "strength": 0.6,
+      "extra": {}
+    },
+    {
+      "kind": "subtitle_emphasis",
+      "target": "subtitle",
+      "strength": 0.8,
+      "extra": {
+        "tokens": [
+          "systems"
+        ]
+      }
+    }
+  ],
+  "asset_path": null
+}

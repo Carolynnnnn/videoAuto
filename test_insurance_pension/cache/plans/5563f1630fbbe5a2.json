@@ -1,0 +1,36 @@
+{
+  "type": "kinetic_text",
+  "keywords": [
+    "planning",
+    "benefit",
+    "future",
+    "technology background",
+    "digital abstract"
+  ],
+  "prompt": "A minimalist kinetic text animation with the phrase '早规划、早受益' in a modern sans-serif font, glowing effect, on a dark blue gradient background with subtle particle effects.",
+  "use_pdf_assets": [],
+  "motion": {
+    "preset": "soft_kenburns",
+    "speed": 0.8
+  },
+  "overlay": [
+    {
+      "kind": "highlight",
+      "target": "center",
+      "strength": 0.6,
+      "extra": {}
+    },
+    {
+      "kind": "subtitle_emphasis",
+      "target": "subtitle",
+      "strength": 0.8,
+      "extra": {
+        "tokens": [
+          "早规划",
+          "早受益"
+        ]
+      }
+    }
+  ],
+  "asset_path": null
+}

@@ -1,0 +1,36 @@
+{
+  "type": "kinetic_text",
+  "keywords": [
+    "deliberative agent",
+    "hybrid agent",
+    "ai types",
+    "classroom learning",
+    "education technology"
+  ],
+  "prompt": "Futuristic text animation with glowing effects, showing 'deliberative' and 'hybrid' in a tech style on dark background",
+  "use_pdf_assets": [],
+  "motion": {
+    "preset": "soft_kenburns",
+    "speed": 0.8
+  },
+  "overlay": [
+    {
+      "kind": "highlight",
+      "target": "center",
+      "strength": 0.6,
+      "extra": {}
+    },
+    {
+      "kind": "subtitle_emphasis",
+      "target": "subtitle",
+      "strength": 0.8,
+      "extra": {
+        "tokens": [
+          "deliberative",
+          "hybrid"
+        ]
+      }
+    }
+  ],
+  "asset_path": null
+}

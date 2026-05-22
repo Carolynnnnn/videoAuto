@@ -1,0 +1,50 @@
+{
+  "type": "ai_image",
+  "keywords": [
+    "financial security",
+    "future planning",
+    "retirement savings",
+    "technology background",
+    "digital abstract"
+  ],
+  "prompt": "A futuristic and abstract scene symbolizing financial security, with glowing digital elements and a clean, minimalist design in a tech style.",
+  "use_pdf_assets": [],
+  "motion": {
+    "preset": "soft_kenburns",
+    "speed": 0.8
+  },
+  "overlay": [
+    {
+      "kind": "highlight",
+      "target": "center",
+      "strength": 0.6,
+      "extra": {}
+    },
+    {
+      "kind": "subtitle_emphasis",
+      "target": "subtitle",
+      "strength": 0.8,
+      "extra": {
+        "tokens": [
+          "未来",
+          "财务",
+          "保障"
+        ]
+      }
+    },
+    {
+      "kind": "sticker",
+      "target": "video",
+      "strength": 0.8,
+      "extra": {
+        "asset_path": "/home/fezer/intern/videoauto/.sisyphus/evidence/task-7-sticker.gif",
+        "anchor": "bottom-left",
+        "scale": 0.25,
+        "transparency": 0.9,
+        "start_time": 0.6666000000000001,
+        "duration": 5.332800000000001
+      }
+    }
+  ],
+  "asset_path": null
+}

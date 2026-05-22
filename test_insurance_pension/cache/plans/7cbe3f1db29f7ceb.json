@@ -1,0 +1,36 @@
+{
+  "type": "ai_image",
+  "keywords": [
+    "basic protection",
+    "safety net",
+    "insurance concept",
+    "technology background",
+    "digital abstract"
+  ],
+  "prompt": "A minimalist, abstract representation of a safety net or shield with a glowing, tech-inspired design, symbolizing basic protection in a clean, modern style.",
+  "use_pdf_assets": [],
+  "motion": {
+    "preset": "soft_kenburns",
+    "speed": 0.8
+  },
+  "overlay": [
+    {
+      "kind": "highlight",
+      "target": "center",
+      "strength": 0.6,
+      "extra": {}
+    },
+    {
+      "kind": "subtitle_emphasis",
+      "target": "subtitle",
+      "strength": 0.8,
+      "extra": {
+        "tokens": [
+          "基本",
+          "保障"
+        ]
+      }
+    }
+  ],
+  "asset_path": null
+}
