@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+venv/
+.venv/
+env/
+.env/
+.pytest_cache/
+.mypy_cache/
+
+# 项目产物（大文件）
+projects/*/render/final.mp4
+projects/*/render/segments/*.mp4
+projects/*/input/voice_full.wav
+projects/*/input/voice_full.mp3
+
+# 日志
+*.log
+
+# 临时文件
+*.tmp
+_concat_list.txt
+_tts_list.txt
+_tts_part_*.mp3
+
+# Assets cache
+projects/*/assets/generated/
+projects/*/assets/pexels_cache/
+projects/*/cache/
+assets/pexels_cache/
+
+# Ignore large files
+projects/yanfa_v2_4min/render/final.concat.mp4
+test_agent_project/render/final.mp4
+test_insurance_pension/render/final.mp4
+
+# 忽略所有的mp4文件
+*.mp4
+
+echo "projects/yanfa_v2_4min/render/final.concat.mp4" >> .gitignore
+echo "test_agent_project/render/final.mp4" >> .gitignore
+echo "test_insurance_pension/render/final.mp4" >> .gitignore

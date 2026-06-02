@@ -1,0 +1,87 @@
+{
+  "version": "1.0",
+  "description": "Built-in sticker library for fallback when Tenor fails",
+  "stickers": [
+    {
+      "id": "happy_001",
+      "filename": "happy_celebration.gif",
+      "sentiment": "happy",
+      "keywords": ["happy", "joy", "celebrate", "excited", "great"],
+      "width": 300,
+      "height": 300,
+      "size_bytes": 245000
+    },
+    {
+      "id": "happy_002",
+      "filename": "thumbs_up.gif",
+      "sentiment": "happy",
+      "keywords": ["approve", "good", "yes", "agree", "success"],
+      "width": 200,
+      "height": 200,
+      "size_bytes": 180000
+    },
+    {
+      "id": "sad_001",
+      "filename": "crying_face.gif",
+      "sentiment": "sad",
+      "keywords": ["sad", "cry", "unhappy", "disappointed"],
+      "width": 250,
+      "height": 250,
+      "size_bytes": 210000
+    },
+    {
+      "id": "angry_001",
+      "filename": "angry_face.gif",
+      "sentiment": "angry",
+      "keywords": ["angry", "mad", "furious", "upset"],
+      "width": 280,
+      "height": 280,
+      "size_bytes": 195000
+    },
+    {
+      "id": "surprised_001",
+      "filename": "wow_reaction.gif",
+      "sentiment": "surprised",
+      "keywords": ["surprised", "wow", "shocked", "amazing", "incredible"],
+      "width": 320,
+      "height": 320,
+      "size_bytes": 265000
+    },
+    {
+      "id": "neutral_001",
+      "filename": "thinking_face.gif",
+      "sentiment": "neutral",
+      "keywords": ["thinking", "hmm", "consider", "ponder"],
+      "width": 240,
+      "height": 240,
+      "size_bytes": 175000
+    },
+    {
+      "id": "love_001",
+      "filename": "heart_eyes.gif",
+      "sentiment": "love",
+      "keywords": ["love", "heart", "like", "adore", "favorite"],
+      "width": 260,
+      "height": 260,
+      "size_bytes": 220000
+    },
+    {
+      "id": "excited_001",
+      "filename": "party_popper.gif",
+      "sentiment": "excited",
+      "keywords": ["excited", "party", "celebrate", "fun", "congrats"],
+      "width": 300,
+      "height": 300,
+      "size_bytes": 285000
+    },
+    {
+      "id": "generic_001",
+      "filename": "generic_reaction.gif",
+      "sentiment": "generic",
+      "keywords": ["reaction", "respond", "emoji"],
+      "width": 200,
+      "height": 200,
+      "size_bytes": 150000
+    }
+  ]
+}

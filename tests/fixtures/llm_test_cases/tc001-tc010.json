@@ -1,0 +1,42 @@
+[
+  {
+    "text": "I am so happy today!",
+    "expected_sentiment": "positive"
+  },
+  {
+    "text": "This makes me feel terrible.",
+    "expected_sentiment": "negative"
+  },
+  {
+    "text": "Just stating the facts here.",
+    "expected_sentiment": "neutral"
+  },
+  {
+    "text": "I love this amazing result!",
+    "expected_sentiment": "positive"
+  },
+  {
+    "text": "I'm worried and anxious about this.",
+    "expected_sentiment": "negative"
+  },
+  {
+    "text": "The data shows consistent trends.",
+    "expected_sentiment": "neutral"
+  },
+  {
+    "text": "This is absolutely wonderful and exciting!",
+    "expected_sentiment": "positive"
+  },
+  {
+    "text": "I feel sad and disappointed.",
+    "expected_sentiment": "negative"
+  },
+  {
+    "text": "The temperature is 72 degrees.",
+    "expected_sentiment": "neutral"
+  },
+  {
+    "text": "Great success! We did it!",
+    "expected_sentiment": "positive"
+  }
+]
