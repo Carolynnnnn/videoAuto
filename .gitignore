@@ -17,32 +17,37 @@ env/
 .pytest_cache/
 .mypy_cache/
 
-# 项目产物（大文件）
-projects/*/render/final.mp4
-projects/*/render/segments/*.mp4
-projects/*/input/voice_full.wav
-projects/*/input/voice_full.mp3
+# macOS
+.DS_Store
 
-# 日志
+# 项目数据（示例、产物、渲染输出）—— 不入库
+projects/
+test_agent_project/
+test_insurance_pension/
+my_first_video/
+pixelle_snapshot/
+.sisyphus/
+
+# 根目录输入文件
+input/
+*.pdf
+
+# Asset 缓存
+assets/lottie_cache/
+assets/pexels_cache/
+
+# BFG 工具
+..bfg-report/
+bfg.jar
+
+# 日志 / 临时文件
 *.log
-
-# 临时文件
 *.tmp
 _concat_list.txt
 _tts_list.txt
 _tts_part_*.mp3
 
-# Assets cache
-projects/*/assets/generated/
-projects/*/assets/pexels_cache/
-projects/*/cache/
-assets/pexels_cache/
-
-# Ignore large files
-projects/yanfa_v2_4min/render/final.concat.mp4
-test_agent_project/render/final.mp4
-test_insurance_pension/render/final.mp4
-
-# 忽略所有的mp4文件
+# 视频文件
 *.mp4
-
+*.wav
+*.mp3
