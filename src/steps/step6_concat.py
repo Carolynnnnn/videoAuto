@@ -71,6 +71,37 @@ def concat_segments(
         return False
 
 
+def _detect_initial_silence(audio_path: str, noise_db: float = -30.0) -> float:
+    """
+    检测音频文件开头的静音时长（秒）。
+    TTS 生成的 MP3 通常有 0.1-0.3s 的无声前导，导致字幕/画面比口播早出现。
+    返回静音结束的时间点（即第一个有声音内容的起始时间）。
+    """
+    cmd = (
+        f'ffmpeg -i "{audio_path}" '
+        f'-af "silencedetect=noise={noise_db}dB:d=0.05" '
+        f'-f null - 2>&1 | grep silence_end | head -1'
+    )
+    try:
+        result = subprocess.run(cmd, shell=True, capture_output=False,
+                                text=True, timeout=15,
+                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        output = result.stdout or ""
+        # silence_end: 0.237573 | silence_duration: 0.237573
+        for line in output.splitlines():
+            if "silence_end:" in line:
+                parts = line.split("silence_end:")
+                val = parts[1].split("|")[0].strip()
+                silence_end = float(val)
+                # 只处理前 1s 内的前导静音；过长则可能是正常间隙，不跳过
+                if silence_end <= 1.0:
+                    logger.info(f"检测到前导静音 {silence_end:.3f}s，音频将从此处开始对齐视频")
+                    return silence_end
+    except Exception:
+        pass
+    return 0.0
+
+
 def mix_audio(
     video_path: str,
     voice_path: str,
@@ -81,6 +112,19 @@ def mix_audio(
     normalize_loudness: bool = True,
 ) -> bool:
     """将整段旁白音轨与视频合并，可选混入 BGM。"""
+    # 检测 TTS 前导静音（通常 0.1-0.3s）。
+    # 关键：同时裁剪视频和音频相同长度，保证 trim_start[i] 对齐不变，
+    # 且 seg1 字幕与开口同步（不再有无声等待期）。
+    voice_offset = _detect_initial_silence(voice_path)
+    if voice_offset > 0:
+        # -ss 同时作用于视频输入和音频输入：两者均从 voice_offset 处开始，对齐关系不变
+        video_seek = f'-ss {voice_offset:.3f} -i "{video_path}"'
+        voice_input = f'-ss {voice_offset:.3f} -i "{voice_path}"'
+        logger.info(f"同步裁剪视频+音频各 {voice_offset:.3f}s，消除初始静音")
+    else:
+        video_seek = f'-i "{video_path}"'
+        voice_input = f'-i "{voice_path}"'
+
     if bgm_path and Path(bgm_path).exists():
         if bgm_ducking:
             audio_filter = (
@@ -97,8 +141,8 @@ def mix_audio(
             )
         cmd = (
             f'ffmpeg -y '
-            f'-i "{video_path}" '
-            f'-i "{voice_path}" '
+            f'{video_seek} '
+            f'{voice_input} '
             f'-i "{bgm_path}" '
             f'-filter_complex "{audio_filter}" '
             f'-map 0:v -map "[aout]" '
@@ -108,8 +152,8 @@ def mix_audio(
     else:
         cmd = (
             f'ffmpeg -y '
-            f'-i "{video_path}" '
-            f'-i "{voice_path}" '
+            f'{video_seek} '
+            f'{voice_input} '
             f'-map 0:v -map 1:a '
             f'-c:v copy -c:a aac -b:a 192k '
             f'-shortest '
@@ -125,6 +169,139 @@ def mix_audio(
         return True
     else:
         logger.error(f"音轨混合失败: {stderr[-300:]}")
+        return False
+
+
+def _srt_to_ass(
+    srt_path: str,
+    ass_path: str,
+    font_name: str = "Heiti SC",
+    font_size: int = 48,
+    video_width: int = 1080,
+    video_height: int = 1920,
+    margin_v: int = 150,
+    time_offset: float = 0.0,
+) -> bool:
+    """将 SRT 转换为 ASS，设置正确的 PlayResX/Y 以防 libass 缩放字体。
+
+    time_offset: 正值表示字幕时间轴向前移动 N 秒（视频被裁掉了 N 秒开头时使用）。
+    """
+    import re as _re
+
+    def _parse_time(ts: str) -> float:
+        h, m, s = ts.replace(",", ".").split(":")
+        return int(h) * 3600 + int(m) * 60 + float(s)
+
+    def _fmt_ass_time(t: float) -> str:
+        t = max(0.0, t)
+        h = int(t // 3600)
+        m = int((t % 3600) // 60)
+        s = t % 60
+        return f"{h}:{m:02d}:{s:05.2f}"
+
+    header = (
+        "[Script Info]\n"
+        "ScriptType: v4.00+\n"
+        f"PlayResX: {video_width}\n"
+        f"PlayResY: {video_height}\n"
+        "ScaledBorderAndShadow: yes\n"
+        "\n"
+        "[V4+ Styles]\n"
+        "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, "
+        "BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, "
+        "BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n"
+        f"Style: Default,{font_name},{font_size},&H00FFFFFF,&H000000FF,&H00000000,"
+        f"&H80000000,0,0,0,0,100,100,0,0,4,0,0,2,10,10,{margin_v},1\n"
+        "\n"
+        "[Events]\n"
+        "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
+    )
+
+    try:
+        with open(srt_path, encoding="utf-8") as f:
+            content = f.read()
+
+        blocks = _re.split(r"\n\s*\n", content.strip())
+        lines = [header]
+        for block in blocks:
+            parts = block.strip().splitlines()
+            if len(parts) < 3:
+                continue
+            m = _re.match(r"(\d{2}:\d{2}:\d{2}[,\.]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[,\.]\d{3})", parts[1])
+            if not m:
+                continue
+            start = _parse_time(m.group(1)) - time_offset
+            end = _parse_time(m.group(2)) - time_offset
+            if end <= 0:
+                continue
+            text = "\\N".join(p.strip() for p in parts[2:] if p.strip())
+            lines.append(
+                f"Dialogue: 0,{_fmt_ass_time(start)},{_fmt_ass_time(end)},"
+                f"Default,,0,0,0,,{text}\n"
+            )
+
+        with open(ass_path, "w", encoding="utf-8") as f:
+            f.writelines(lines)
+        return True
+    except Exception as e:
+        logger.error(f"SRT→ASS 转换失败: {e}")
+        return False
+
+
+def overlay_subtitle_srt(
+    video_path: str,
+    srt_path: str,
+    output_path: str,
+    font_size: int = 48,
+    font_color: str = "white",
+    srt_time_offset: float = 0.0,
+    video_width: int = 1080,
+    video_height: int = 1920,
+) -> bool:
+    """将 SRT 字幕叠加到视频上。
+
+    先将 SRT 转成包含正确 PlayResX/Y 的 ASS 文件，再用 ass 滤镜渲染，
+    避免 libass 默认 PlayResY=288 导致字体被放大 6~7 倍的问题。
+
+    srt_time_offset: 视频起点被裁剪的秒数（正值），字幕时间轴相应前移。
+    """
+    ass_path = str(Path(srt_path).with_suffix(".tmp.ass"))
+    ok = _srt_to_ass(
+        srt_path=srt_path,
+        ass_path=ass_path,
+        font_size=font_size,
+        video_width=video_width,
+        video_height=video_height,
+        time_offset=srt_time_offset,
+    )
+    if not ok:
+        return False
+
+    ass_escaped = str(Path(ass_path).resolve()).replace(":", "\\:")
+    tmp_path = str(Path(output_path).with_suffix(".sub_tmp.mp4"))
+    cmd = (
+        f'ffmpeg -y -i "{video_path}" '
+        f'-vf "ass={ass_escaped}" '
+        f'-c:v libx264 -preset fast -crf 22 '
+        f'-c:a copy '
+        f'"{tmp_path}" -loglevel warning'
+    )
+    rc, _, stderr = _run_ffmpeg(cmd, timeout=600)
+    try:
+        Path(ass_path).unlink(missing_ok=True)
+    except Exception:
+        pass
+    if rc == 0 and Path(tmp_path).exists():
+        Path(output_path).unlink(missing_ok=True)
+        Path(tmp_path).rename(output_path)
+        logger.info(f"SRT 字幕叠加完成: {output_path}")
+        return True
+    else:
+        logger.error(f"SRT 字幕叠加失败: {stderr[-300:]}")
+        try:
+            Path(tmp_path).unlink(missing_ok=True)
+        except Exception:
+            pass
         return False
 
 
@@ -161,6 +338,7 @@ def run_step6(
     bgm_volume: float = 0.15,
     bgm_ducking: bool = True,
     normalize_loudness: bool = True,
+    subtitle_srt_path: Optional[str] = None,
 ) -> Manifest:
     """
     执行 Step 6：拼接合成 final.mp4（v2）
@@ -173,6 +351,7 @@ def run_step6(
     :param bgm_volume: BGM 音量
     :param bgm_ducking: 是否 ducking
     :param normalize_loudness: 是否响度归一化
+    :param subtitle_srt_path: SRT 字幕文件路径（None=不叠加字幕）
     :return: 更新后的 Manifest
     """
     logger.info("=" * 50)
@@ -233,6 +412,22 @@ def run_step6(
         success = True
 
     if success and Path(output_video).exists():
+        # 叠加 SRT 字幕（时间轴直接跟 Whisper 原始时间戳，天然与音频同步）
+        if subtitle_srt_path and Path(subtitle_srt_path).exists():
+            _audio_for_silence = audio_path or manifest.audio_path or ""
+            voice_offset = _detect_initial_silence(_audio_for_silence) if _audio_for_silence and Path(_audio_for_silence).exists() else 0.0
+            srt_ok = overlay_subtitle_srt(
+                video_path=output_video,
+                srt_path=subtitle_srt_path,
+                output_path=output_video,
+                font_size=manifest.global_style.font_size or 48,
+                srt_time_offset=voice_offset,
+                video_width=manifest.global_style.resolution_w,
+                video_height=manifest.global_style.resolution_h,
+            )
+            if not srt_ok:
+                logger.warning("SRT 叠加失败，保留无字幕版本")
+
         size_mb = Path(output_video).stat().st_size / 1024 / 1024
         logger.info(f"  final.mp4 生成成功: {output_video} ({size_mb:.1f} MB)")
         manifest.final_video = output_video

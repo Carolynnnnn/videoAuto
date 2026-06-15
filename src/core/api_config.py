@@ -3,8 +3,16 @@ API 配置管理
 
 支持：
   - DeepSeek API（LLM，OpenAI 兼容接口）
+  - OpenAI API（LLM 备用 + TTS）
+  - Groq API（免费额度，OpenAI 兼容）
+  - 自定义 LLM（通过 LLM_API_KEY / LLM_BASE_URL / LLM_MODEL 覆盖）
   - ElevenLabs API（高质量 TTS）
-  - OpenAI API（备用 LLM + TTS）
+
+LLM 优先级（自动回退）：
+  1. LLM_API_KEY + LLM_BASE_URL + LLM_MODEL（完全自定义，最高优先）
+  2. DEEPSEEK_API_KEY → DeepSeek
+  3. GROQ_API_KEY     → Groq (llama-3.3-70b-versatile，免费)
+  4. OPENAI_API_KEY   → OpenAI (gpt-4o-mini)
 """
 from __future__ import annotations
 import os
@@ -15,6 +23,41 @@ from typing import Optional
 DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
 DEEPSEEK_BASE_URL = "https://api.deepseek.com/v1"
 DEEPSEEK_MODEL = "deepseek-chat"
+
+# 自定义 LLM 覆盖（任意 OpenAI 兼容接口）
+_LLM_OVERRIDE_KEY  = os.environ.get("LLM_API_KEY", "")
+_LLM_OVERRIDE_URL  = os.environ.get("LLM_BASE_URL", "")
+_LLM_OVERRIDE_MODEL = os.environ.get("LLM_MODEL", "")
+
+# Groq（免费，OpenAI 兼容）
+_GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
+_GROQ_BASE_URL = "https://api.groq.com/openai/v1"
+_GROQ_MODEL = "llama-3.3-70b-versatile"
+
+# OpenAI 备用
+_OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
+_OPENAI_BASE_URL = "https://api.openai.com/v1"
+_OPENAI_MODEL = "gpt-4o-mini"
+
+
+def _resolve_llm_config() -> tuple[str, str, str]:
+    """
+    按优先级选择可用的 LLM 配置，返回 (api_key, base_url, model)。
+    优先级：自定义覆盖 > DeepSeek > Groq > OpenAI
+    """
+    if _LLM_OVERRIDE_KEY and _LLM_OVERRIDE_URL:
+        return _LLM_OVERRIDE_KEY, _LLM_OVERRIDE_URL, _LLM_OVERRIDE_MODEL or "default"
+    if DEEPSEEK_API_KEY:
+        return DEEPSEEK_API_KEY, DEEPSEEK_BASE_URL, DEEPSEEK_MODEL
+    if _GROQ_API_KEY:
+        return _GROQ_API_KEY, _GROQ_BASE_URL, _GROQ_MODEL
+    if _OPENAI_API_KEY:
+        return _OPENAI_API_KEY, _OPENAI_BASE_URL, _OPENAI_MODEL
+    # 无可用配置，返回空（调用时会报错，提示用户配置）
+    return "", DEEPSEEK_BASE_URL, DEEPSEEK_MODEL
+
+
+_ACTIVE_LLM_KEY, _ACTIVE_LLM_URL, _ACTIVE_LLM_MODEL = _resolve_llm_config()
 
 ELEVENLABS_API_KEY = os.environ.get("ELEVENLABS_API_KEY", "")
 
@@ -58,10 +101,10 @@ DEFAULT_STABILITY = StabilityConfig()
 
 @dataclass
 class APIConfig:
-    llm_provider: str = "deepseek"
-    llm_model: str = DEEPSEEK_MODEL
-    llm_api_key: str = DEEPSEEK_API_KEY
-    llm_base_url: str = DEEPSEEK_BASE_URL
+    llm_provider: str = "auto"
+    llm_model: str = field(default_factory=lambda: _ACTIVE_LLM_MODEL)
+    llm_api_key: str = field(default_factory=lambda: _ACTIVE_LLM_KEY)
+    llm_base_url: str = field(default_factory=lambda: _ACTIVE_LLM_URL)
     
     tts_provider: str = "elevenlabs"
     elevenlabs_api_key: str = ELEVENLABS_API_KEY

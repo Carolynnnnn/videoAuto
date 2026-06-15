@@ -335,10 +335,11 @@ class Segment:
         """计算 segment_key = content_key + '#' + occurrence_index"""
         return f"{content_key}#{occurrence_index}"
 
-    def compute_render_hash(self, global_style_render_fields: str = "") -> str:
+    def compute_render_hash(self, global_style_render_fields: str = "", extra: str = "") -> str:
         """
         计算 render_hash：用于判断片段是否需要重渲。
-        render_hash = hash(plan_hash + start + end + subtitle_style + motion + asset_hashes)
+        render_hash = hash(plan_hash + start + end + subtitle_style + motion + asset_hashes + extra)
+        extra 可传入 video_start_offset 等运行时参数，确保偏移不同时生成不同缓存文件。
         """
         asset_hashes = "|".join(sorted(a.asset_hash for a in self.asset_refs))
         motion_str = ""
@@ -349,7 +350,8 @@ class Segment:
             f"{self.start:.3f}|{self.end:.3f}|"
             f"{motion_str}|"
             f"{asset_hashes}|"
-            f"{global_style_render_fields}"
+            f"{global_style_render_fields}|"
+            f"{extra}"
         )
         return hashlib.md5(raw.encode()).hexdigest()[:12]
 
@@ -440,7 +442,7 @@ class GlobalStyle:
     resolution: str = "1080x1920"
     fps: int = 30
     font_name: str = "NotoSansCJK"
-    font_size: int = 48
+    font_size: int = 42
     font_color: str = "white"
     subtitle_bg: bool = True
     subtitle_bg_color: str = "black@0.5"

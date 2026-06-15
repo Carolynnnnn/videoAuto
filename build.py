@@ -4,8 +4,9 @@
 
 从头开始执行完整流程：
   [可选] PDF → 脚本 → TTS
-  Step 1: 音频 → SRT 字幕对齐
-  Step 2: SRT → Manifest 生成（v2 segment_key 策略）
+  Step 1:  音频 → SRT 字幕对齐
+  Step 1b: Whisper 字级时间戳对齐（精确首字/尾字边界）
+  Step 2:  SRT → Manifest 生成（v2 segment_key 策略）
   Step 3: Visual Plan 自动生成（plan_hash 缓存）
   Step 4: 素材处理（content_key + plan_hash 缓存）
   Step 5: 渲染 Segment 视频（render_hash 缓存）
@@ -25,6 +26,15 @@ from pathlib import Path
 from datetime import datetime
 
 sys.path.insert(0, str(Path(__file__).parent))
+
+# 自动加载项目根目录的 .env（不覆盖已有环境变量）
+_env_file = Path(__file__).parent / ".env"
+if _env_file.exists():
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(_env_file, override=False)
+    except ImportError:
+        pass
 
 from src.core.models import GlobalStyle, Manifest
 from src.core.generation_policy import (
@@ -323,6 +333,16 @@ def main():
     else:
         logger.info(f"SRT 已存在，跳过 Step 1: {srt_path}")
 
+    # ── Step 1b: Whisper 字级时间戳对齐（自动跳过手动指定的 SRT）──
+    if not args.srt:
+        from src.steps.step1b_word_align import run_step1b
+        run_step1b(
+            audio_path=audio_path,
+            srt_path=srt_path,
+            project_root=project_root,
+            api_key=os.environ.get("OPENAI_API_KEY", ""),
+        )
+
     manifest_path = str(Path(project_root) / "build" / "manifest.json")
     segments_dir = str(Path(project_root) / "render" / "segments")
     cache_plans = str(Path(project_root) / "cache" / "plans")
@@ -376,7 +396,7 @@ def main():
         manifest=manifest,
         output_manifest=manifest_path,
         project_root=project_root,
-        pexels_api_key=args.pexels_api_key,
+        pexels_api_key=args.pexels_api_key or os.environ.get("PEXELS_API_KEY", ""),
         enable_pexels_video=True,
         enable_pexels_photo=True,
         enable_ai_image=not args.no_ai_image,
@@ -417,6 +437,7 @@ def main():
         output_manifest=manifest_path,
         output_video=final_video,
         audio_path=audio_path,
+        subtitle_srt_path=srt_path if Path(srt_path).exists() else None,
     )
 
     logger.info("=" * 60)

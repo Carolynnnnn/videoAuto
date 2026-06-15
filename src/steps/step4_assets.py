@@ -340,7 +340,7 @@ def build_top6_ai_allocation_map(
     target_segment_keys: Optional[List[str]] = None,
     max_ai_segments: int = 6,
 ) -> dict[str, bool]:
-    capped_n = max(0, min(max_ai_segments, 6))
+    capped_n = max(0, min(max_ai_segments, 6))  # 最多 6 段 AI 图片
     target_keys = set(target_segment_keys) if target_segment_keys else None
 
     allocation: dict[str, bool] = {seg.segment_key: False for seg in segments}
@@ -707,47 +707,18 @@ def _resolve_pixelle_asset(
             ))
 
         assert adapter is not None
-        
         last_error = None
         for attempt in range(1, max_retries + 1):
             try:
                 with _pixelle_semaphore:
                     response = adapter.invoke(request)
-                
+
                 if response.success and response.output_path:
                     from pixelle_snapshot import test_doubles
 
                     final_output_path = response.output_path
-                    if test_doubles.is_test_mode_enabled() and effective_capability == "digital_human":
-                        deterministic = test_doubles.create_digital_human_test_output(
-                            segment_key=segment.segment_key,
-                            segment_duration=segment.duration,
-                            output_dir=str(output_dir),
-                            avatar_id="default_avatar",
-                            voice_id="default_voice",
-                        )
-                        final_output_path = deterministic.output_path
-
                     metadata = getattr(response, "metadata", {}) or {}
                     if metadata.get("mvp_placeholder") and not metadata.get("test_mode"):
-                        diagnostic = FailureDiagnostic.from_error(
-                            category=ErrorCategory.EXECUTION,
-                            reason_code="PIXELLE_INVOCATION_FAILED",
-                        )
-                        return _with_legacy_aliases(AssetRef(
-                            kind="pixelle_failed",
-                            path="",
-                            asset_hash="000000000000",
-                            fallback_reason_code="PIXELLE_INVOCATION_FAILED",
-                                fallback_error_category=ErrorCategory.EXECUTION.value,
-                                fallback_diagnostic=diagnostic.to_dict(),
-                        ))
-
-                    if (
-                        material_mode == "auto"
-                        and effective_capability == "digital_human"
-                        and metadata.get("test_mode")
-                    ):
                         diagnostic = FailureDiagnostic.from_error(
                             category=ErrorCategory.EXECUTION,
                             reason_code="PIXELLE_INVOCATION_FAILED",
@@ -760,20 +731,6 @@ def _resolve_pixelle_asset(
                             fallback_error_category=ErrorCategory.EXECUTION.value,
                             fallback_diagnostic=diagnostic.to_dict(),
                         ))
-
-                    if (
-                        test_doubles.is_test_mode_enabled()
-                        and effective_capability == "digital_human"
-                        and metadata.get("test_mode")
-                    ):
-                        deterministic = test_doubles.create_digital_human_test_output(
-                            segment_key=segment.segment_key,
-                            segment_duration=segment.duration,
-                            output_dir=str(output_dir),
-                            avatar_id="default_avatar",
-                            voice_id="default_voice",
-                        )
-                        final_output_path = deterministic.output_path
 
                     _pixelle_reliability_controls.record_success()
                     request_id = str(getattr(response, "metadata", {}).get("request_id") or f"req-{uuid.uuid4().hex[:12]}")
@@ -799,7 +756,7 @@ def _resolve_pixelle_asset(
                     _pixelle_reliability_controls.record_failure(category=category)
                     details = getattr(error, "details", {})
                     reason_code = "PIXELLE_INVOCATION_FAILED"
-                    if isinstance(details, dict) and details.get("reason_code"):
+                    if isinstance(details, dict) and details.get("reason_code") and details.get("reason_code") not in ("UNKNOWN", "EXECUTION_ERROR"):
                         reason_code = str(details.get("reason_code"))
 
                     if error.category == ErrorCategory.PROVIDER:
@@ -859,7 +816,7 @@ def _resolve_pixelle_asset(
         error_category = normalize_error_category(getattr(last_error, "category", ErrorCategory.EXECUTION))
         reason_code = "PIXELLE_INVOCATION_FAILED"
         details = getattr(last_error, "details", {})
-        if isinstance(details, dict) and details.get("reason_code"):
+        if isinstance(details, dict) and details.get("reason_code") and details.get("reason_code") not in ("UNKNOWN", "EXECUTION_ERROR"):
             reason_code = str(details.get("reason_code"))
         diagnostic = FailureDiagnostic.from_error(
             category=ErrorCategory(error_category),
@@ -1097,39 +1054,71 @@ def fetch_pexels_photo(
 def generate_ai_image(
     prompt: str,
     output_path: str,
-    size: str = "1024x1792",
-    model: str = "dall-e-3",
+    size: str = "1024x1536",
+    model: str = "gpt-image-1",
 ) -> Optional[str]:
-    """调用 DALL-E 生成图片并保存到 output_path"""
+    """
+    调用 OpenAI 图像生成 API 并保存到 output_path。
+    支持两种模型系列：
+      - gpt-image-1 / gpt-image-1-mini / gpt-image-2：返回 b64_json，尺寸用 1024x1536
+      - dall-e-3（旧版）：返回 url，尺寸用 1024x1792
+    """
     try:
+        import base64
         import requests as req
+
         client = OpenAI()
         logger.info(f"  AI 图片生成: {prompt[:60]}...")
-        final_size: Literal["1024x1024", "1024x1792", "1792x1024"]
-        if size == "1024x1024":
-            final_size = "1024x1024"
-        elif size == "1792x1024":
-            final_size = "1792x1024"
+
+        # 判断模型系列，适配不同参数
+        _is_gpt_image = model.startswith("gpt-image") or model == "chatgpt-image-latest"
+
+        # 尺寸映射：gpt-image-1 支持 1024x1024 / 1024x1536 / 1536x1024
+        if _is_gpt_image:
+            if size in ("1024x1024",):
+                final_size = "1024x1024"
+            elif size in ("1536x1024", "1792x1024"):
+                final_size = "1536x1024"
+            else:
+                final_size = "1024x1536"   # 默认竖屏
+            quality = "medium"
         else:
-            final_size = "1024x1792"
+            # dall-e-3 旧版参数
+            if size == "1024x1024":
+                final_size = "1024x1024"
+            elif size in ("1792x1024", "1536x1024"):
+                final_size = "1792x1024"
+            else:
+                final_size = "1024x1792"
+            quality = "standard"
 
         response = client.images.generate(
             model=model,
             prompt=prompt,
             size=final_size,
-            quality="standard",
+            quality=quality,
             n=1,
         )
         data = response.data
         if not data:
             return None
-        image_url = data[0].url
-        if not image_url:
-            return None
-        img_data = req.get(image_url, timeout=30).content
+
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-        with open(output_path, "wb") as f:
-            f.write(img_data)
+
+        # gpt-image-1 返回 b64_json；dall-e-3 返回 url
+        item = data[0]
+        if getattr(item, "b64_json", None):
+            img_bytes = base64.b64decode(item.b64_json)
+            with open(output_path, "wb") as f:
+                f.write(img_bytes)
+        elif getattr(item, "url", None):
+            img_bytes = req.get(item.url, timeout=30).content
+            with open(output_path, "wb") as f:
+                f.write(img_bytes)
+        else:
+            logger.warning("  AI 图片生成失败：响应中无 b64_json 也无 url")
+            return None
+
         logger.info(f"  AI 图片已保存: {output_path}")
         return output_path
     except Exception as e:
@@ -1385,9 +1374,21 @@ def resolve_asset_for_segment(
                 return _resolve_pixelle_asset(**kwargs)
             except TypeError as exc:
                 msg = str(exc)
-                if "unexpected keyword argument" in msg and "resolution" in msg and "resolution" in kwargs:
+                if "unexpected keyword argument" in msg:
+                    import re
+                    # Strip the unexpected kwarg and retry
+                    m = re.search(r"unexpected keyword argument '([^']+)'", msg)
+                    if m:
+                        compat_kwargs = dict(kwargs)
+                        compat_kwargs.pop(m.group(1), None)
+                        try:
+                            return _resolve_pixelle_asset(**compat_kwargs)
+                        except TypeError:
+                            pass
+                    # Fallback: strip known optional kwargs
                     compat_kwargs = dict(kwargs)
-                    compat_kwargs.pop("resolution", None)
+                    for key in ("resolution", "material_mode", "routed_capability_override"):
+                        compat_kwargs.pop(key, None)
                     return _resolve_pixelle_asset(**compat_kwargs)
                 raise
         
@@ -1684,13 +1685,14 @@ def resolve_asset_for_segment(
             _attempt_pixelle_route()
 
     # ── ④ AI 图片生成 ──
+    # vp_type 不限制 ("ai_image", "broll")，只要 AI 被允许且有 prompt 即可生成
+    # 这样当 LLM 将短句分配为 "template" / "pixelle_video" 类型但无视频时也能回退 AI 图片
     if (
         not asset_path
         and ai_routes_allowed
         and enable_ai_image
         and vp
         and vp.prompt
-        and vp_type in ("ai_image", "broll")
     ):
         route_diagnostic["route_attempted"] = "ai_image"
         ai_output = _asset_cache_path(generated_dir, content_key, effective_cache_hash, "png")
@@ -1901,7 +1903,7 @@ def run_step4(
     ai_allocation_map = build_top6_ai_allocation_map(
         manifest.segments,
         target_segment_keys=target_segment_keys,
-        max_ai_segments=6,
+        max_ai_segments=6,  # 最多 6 段生成 AI 图片，控制 API 成本
     )
     setattr(manifest, "step4_ai_allocation_map", ai_allocation_map)
     processed = 0
@@ -1960,6 +1962,51 @@ def run_step4(
                     cap_telemetry_non_ai_replacement_count += 1
 
         processed += 1
+
+    # ── 图片继承：非 AI 段复用最近 AI 段的图片，确保全段视觉覆盖 ──────────────
+    # 判断依据：ai_allocation_map（不依赖 kind 字段，缓存命中时 kind="cached" 会失效）
+    # pexels/pdf 段不修改
+    _SKIP_KINDS = {"pexels_video", "pexels_photo", "pdf_chart"}
+
+    # 找到所有真正使用 AI 图片的段（文件路径为证）：
+    # 优先查 kind="ai_image"，fallback 查 ai_allocation_map=True 且文件是真实图片
+    _ai_image_by_idx: dict[int, "AssetRef"] = {}
+    for _i, _s in enumerate(manifest.segments):
+        if not _s.asset_refs:
+            continue
+        _ref = _s.asset_refs[0]
+        if _ref.kind == "ai_image":
+            _ai_image_by_idx[_i] = _ref
+        elif _ref.kind == "cached" and ai_allocation_map.get(_s.segment_key, False):
+            # 缓存命中的 AI 段：确认文件确实是 AI 图片（非模板）
+            import os as _os
+            if _os.path.exists(_ref.path) and _os.path.getsize(_ref.path) > 50_000:
+                # AI 图片通常 >50KB，模板 PNG 一般 <20KB
+                _ai_image_by_idx[_i] = _ref
+
+    if _ai_image_by_idx:
+        import copy as _copy
+        _inherited = 0
+        for _i, _s in enumerate(manifest.segments):
+            if target_keys and _s.segment_key not in target_keys:
+                continue
+            # 跳过 AI 已分配且成功的段（在 _ai_image_by_idx 中可查到）
+            if _i in _ai_image_by_idx:
+                continue
+            # 跳过 pexels/pdf 等高质量非模板素材
+            if _s.asset_refs and _s.asset_refs[0].kind in _SKIP_KINDS:
+                continue
+            # 找最近的 AI 图片段（绝对距离最小）
+            _best_idx = min(_ai_image_by_idx.keys(), key=lambda k: abs(k - _i))
+            _donor = _ai_image_by_idx[_best_idx]
+            _s.asset_refs = [_copy.copy(_donor)]
+            # 关键：渲染器优先读 visual_plan.asset_path（step5 line 576），
+            # 必须同步更新，否则 vp 里的模板路径仍被优先使用，导致紫色背景
+            if _s.visual_plan:
+                _s.visual_plan.asset_path = _donor.path
+            _inherited += 1
+        if _inherited:
+            logger.info(f"  图片继承: {_inherited} 个非AI段复用了最近 AI 图片")
 
     # 输出素材来源统计
     logger.info(f"Step 4 完成: 处理 {processed} 段，跳过 {skipped} 段")

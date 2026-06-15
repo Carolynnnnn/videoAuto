@@ -12,6 +12,7 @@ build/
 venv/
 .venv/
 env/
+.env
 .env/
 .pytest_cache/
 .mypy_cache/
@@ -45,6 +46,3 @@ test_insurance_pension/render/final.mp4
 # 忽略所有的mp4文件
 *.mp4
 
-echo "projects/yanfa_v2_4min/render/final.concat.mp4" >> .gitignore
-echo "test_agent_project/render/final.mp4" >> .gitignore
-echo "test_insurance_pension/render/final.mp4" >> .gitignore

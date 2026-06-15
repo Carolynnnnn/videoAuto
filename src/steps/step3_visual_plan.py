@@ -275,13 +275,67 @@ def _save_plan_cache(cache_dir: str, plan_hash: str, plan_dict: Dict[str, Any]) 
 # ─────────────────────────────────────────────
 # 单段 Visual Plan 生成
 # ─────────────────────────────────────────────
+def _parse_llm_json(raw: str, seg_index: int = 0) -> dict:
+    """
+    健壮解析 LLM 返回的 JSON 字符串。
+    处理以下常见异常格式：
+      1. 标准 JSON（直接解析）
+      2. Markdown 代码块包裹：```json ... ``` 或 ``` ... ```
+      3. 首尾多余空白 / 注释行
+      4. 多余尾随逗号（宽松修复）
+    解析失败时返回 template 兜底 dict，不抛异常。
+    """
+    import re as _re
+
+    text = raw.strip()
+
+    # 1. 直接尝试解析
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+
+    # 2. 剥离 Markdown 代码块（Groq/Llama 常见）
+    # 匹配 ```json ... ``` 或 ``` ... ```
+    md_match = _re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, _re.DOTALL)
+    if md_match:
+        try:
+            return json.loads(md_match.group(1))
+        except json.JSONDecodeError:
+            pass
+
+    # 3. 提取第一个 {...} 块（应对前后有说明文字的情况）
+    brace_match = _re.search(r"\{.*\}", text, _re.DOTALL)
+    if brace_match:
+        candidate = brace_match.group(0)
+        try:
+            return json.loads(candidate)
+        except json.JSONDecodeError:
+            # 4. 尝试修复尾随逗号（如 {"a": 1,}）
+            fixed = _re.sub(r",\s*([}\]])", r"\1", candidate)
+            try:
+                return json.loads(fixed)
+            except json.JSONDecodeError:
+                pass
+
+    # 5. 全部失败，返回 template 兜底
+    logger.warning(f"  [seg {seg_index}] JSON 解析失败，原始内容: {raw[:120]!r}，使用 template 兜底")
+    return {
+        "type": "template",
+        "keywords": [],
+        "prompt": "",
+        "motion": {"preset": "static", "speed": 1.0},
+        "overlay": [],
+    }
+
+
 def generate_visual_plan_for_segment(
     segment: Segment,
     global_style_asset_fields: str = "",
     prev_text: str = "",
     next_text: str = "",
     cache_dir: Optional[str] = None,
-    llm_model: str = "deepseek-chat",
+    llm_model: str = "",
 ) -> tuple[VisualPlan, str]:
     """
     为单个 Segment 生成 VisualPlan（带 plan_hash 缓存）。
@@ -298,11 +352,12 @@ def generate_visual_plan_for_segment(
             logger.debug(f"  [seg {segment.index}] 命中 plan 缓存: {text_cache_key[:12]}")
             return vp, plan_hash
 
-    # 调用 LLM（支持 DeepSeek / OpenAI 兼容接口）
-    from src.core.api_config import DEEPSEEK_API_KEY, DEEPSEEK_BASE_URL, DEEPSEEK_MODEL
-    _api_key = os.environ.get("DEEPSEEK_API_KEY", DEEPSEEK_API_KEY)
-    _base_url = DEEPSEEK_BASE_URL
-    _model = llm_model if llm_model not in ("gpt-4.1-mini", "gpt-4o-mini", None, "") else DEEPSEEK_MODEL
+    # 调用 LLM（自动回退：DeepSeek → Groq → OpenAI，或自定义 LLM_API_KEY）
+    from src.core.api_config import _resolve_llm_config, DEEPSEEK_MODEL
+    _api_key, _base_url, _auto_model = _resolve_llm_config()
+    # 若调用方未传入明确模型，或传入的是已废弃的 OpenAI 模型名，则使用自动选择的模型
+    # 空字符串 / None / 旧版 OpenAI 模型名 → 统一使用自动选择的模型
+    _model = llm_model if llm_model not in ("gpt-4.1-mini", "gpt-4o-mini", "deepseek-chat", None, "") else _auto_model
     client = OpenAI(api_key=_api_key, base_url=_base_url)
     user_msg = USER_PROMPT_TEMPLATE.format(
         text=segment.text,
@@ -311,18 +366,25 @@ def generate_visual_plan_for_segment(
         next_text=next_text,
     )
 
+    # Groq 不支持 response_format=json_object 的提供商列表
+    _PROVIDERS_NO_JSON_MODE = {"groq.com"}
+    _use_json_mode = not any(p in _base_url for p in _PROVIDERS_NO_JSON_MODE)
+
     try:
-        response = client.chat.completions.create(
+        create_kwargs = dict(
             model=_model,
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_msg},
             ],
             temperature=0.3,
-            response_format={"type": "json_object"},
         )
+        if _use_json_mode:
+            create_kwargs["response_format"] = {"type": "json_object"}
+
+        response = client.chat.completions.create(**create_kwargs)
         raw_content = response.choices[0].message.content or "{}"
-        plan_dict = json.loads(raw_content)
+        plan_dict = _parse_llm_json(raw_content, segment.index)
         logger.debug(f"  [seg {segment.index}] LLM 生成 visual_plan: type={plan_dict.get('type')}")
     except Exception as e:
         logger.warning(f"  [seg {segment.index}] LLM 调用失败: {e}，使用 template 兜底")
@@ -398,7 +460,7 @@ def run_step3(
     output_manifest: str,
     cache_dir: Optional[str] = None,
     target_segment_keys: Optional[List[str]] = None,
-    llm_model: str = "gpt-4.1-mini",
+    llm_model: str = "",
 ) -> Manifest:
     """
     执行 Step 3：为 Manifest 中的 Segment 生成 Visual Plan（v2）
@@ -412,7 +474,15 @@ def run_step3(
     """
     logger.info("=" * 50)
     logger.info("Step 3: 字幕段 → Visual Plan 生成 (v2)")
-    logger.info(f"  LLM 模型: {llm_model}")
+    from src.core.api_config import _resolve_llm_config
+    _k, _u, _m = _resolve_llm_config()
+    _provider_hint = (
+        "DeepSeek" if "deepseek.com" in _u else
+        "Groq" if "groq.com" in _u else
+        "OpenAI" if "openai.com" in _u else
+        "自定义LLM"
+    )
+    logger.info(f"  LLM 提供商: {_provider_hint}  模型: {llm_model if llm_model not in ('gpt-4.1-mini','gpt-4o-mini',None,'') else _m}")
 
     global_style_asset_fields = manifest.global_style.asset_related_fields()
     segments = manifest.segments

@@ -152,9 +152,9 @@ class BuildParams:
     tts_voice: str = "alloy"
     tts_speed: float = 1.0
 
-    # 素材生成
-    ai_image_model: str = "dall-e-3"
-    ai_image_size: str = "1024x1792"    # 9:16
+    # 素材生成（gpt-image-1 系列取代旧版 dall-e-3，尺寸对应竖屏 9:16）
+    ai_image_model: str = "gpt-image-1"   # 可选: gpt-image-1 / gpt-image-1-mini
+    ai_image_size: str = "1024x1536"      # gpt-image-1 支持的最近似 9:16 尺寸
 
     # 视频
     aspect_ratio: str = "9:16"
